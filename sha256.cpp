@@ -3,7 +3,7 @@
 #include <avr/pgmspace.h>
 #include "sha256.h"
 
-uint32_t sha256K[] PROGMEM = {
+const uint32_t sha256K[] PROGMEM = {
   0x428a2f98,0x71374491,0xb5c0fbcf,0xe9b5dba5,0x3956c25b,0x59f111f1,0x923f82a4,0xab1c5ed5,
   0xd807aa98,0x12835b01,0x243185be,0x550c7dc3,0x72be5d74,0x80deb1fe,0x9bdc06a7,0xc19bf174,
   0xe49b69c1,0xefbe4786,0x0fc19dc6,0x240ca1cc,0x2de92c6f,0x4a7484aa,0x5cb0a9dc,0x76f988da,
@@ -16,7 +16,7 @@ uint32_t sha256K[] PROGMEM = {
 
 #define BUFFER_SIZE 64
 
-uint8_t sha256InitState[] PROGMEM = {
+const uint8_t sha256InitState[] PROGMEM = {
   0x67,0xe6,0x09,0x6a, // H0
   0x85,0xae,0x67,0xbb, // H1
   0x72,0xf3,0x6e,0x3c, // H2
@@ -49,7 +49,7 @@ void Sha256Class::hashBlock() {
   f=state.w[5];
   g=state.w[6];
   h=state.w[7];
-  
+
   for (i=0; i<64; i++) {
     if (i>=16) {
       t1 = buffer.w[i&15] + buffer.w[(i-7)&15];
@@ -87,9 +87,17 @@ void Sha256Class::addUncounted(uint8_t data) {
   }
 }
 
-void Sha256Class::write(uint8_t data) {
+#if defined(ARDUINO) && ARDUINO >= 100
+size_t
+#else
+void
+#endif
+Sha256Class::write(uint8_t data) {
   ++byteCount;
   addUncounted(data);
+#if defined(ARDUINO) && ARDUINO >= 100
+  return 1;
+#endif
 }
 
 void Sha256Class::pad() {
@@ -114,7 +122,7 @@ void Sha256Class::pad() {
 uint8_t* Sha256Class::result(void) {
   // Pad to complete the last block
   pad();
-  
+
   // Swap byte order back
   for (int i=0; i<8; i++) {
     uint32_t a,b;
@@ -125,7 +133,7 @@ uint8_t* Sha256Class::result(void) {
     b|=a>>24;
     state.w[i]=b;
   }
-  
+
   // Return pointer to hash (20 characters)
   return state.b;
 }
