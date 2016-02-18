@@ -7,20 +7,26 @@
 #define HASH_LENGTH 32
 #define BLOCK_LENGTH 64
 
-union _buffer {
-  uint8_t b[BLOCK_LENGTH];
-  uint32_t w[BLOCK_LENGTH/4];
-};
-union _state {
-  uint8_t b[HASH_LENGTH];
-  uint32_t w[HASH_LENGTH/4];
-};
+class Sha256 : public Print {
 
-class Sha256Class : public Print
-{
+  union Buffer {
+    uint8_t b[BLOCK_LENGTH];
+    uint32_t w[BLOCK_LENGTH / 4];
+  };
+
+  union State {
+    uint8_t b[HASH_LENGTH];
+    uint32_t w[HASH_LENGTH / 4];
+  };
+
   public:
     void init(void);
-    void initHmac(const uint8_t* secret, int secretLength);
+    void initHmac(const uint8_t *key, size_t keyLength);
+    void initHmac_EEPROM(const uint8_t *key, size_t keyLength);
+
+    // Reset to initial state, but preserve key material.
+    void reset(void);
+
     uint8_t* result(void);
     uint8_t* resultHmac(void);
 #if defined(ARDUINO) && ARDUINO >= 100
@@ -29,18 +35,20 @@ class Sha256Class : public Print
     virtual void write(uint8_t);
 #endif
     using Print::write;
+
   private:
-    void pad();
-    void addUncounted(uint8_t data);
     void hashBlock();
-    uint32_t ror32(uint32_t number, uint8_t bits);
-    _buffer buffer;
-    uint8_t bufferOffset;
-    _state state;
+    void padBlock();
+    void push(uint8_t data);
+
     uint32_t byteCount;
+
     uint8_t keyBuffer[BLOCK_LENGTH];
     uint8_t innerHash[HASH_LENGTH];
+
+    State state;
+    Buffer buffer;
+    uint8_t bufferOffset;
 };
-extern Sha256Class Sha256;
 
 #endif
